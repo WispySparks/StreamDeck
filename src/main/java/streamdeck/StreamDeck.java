@@ -10,15 +10,15 @@ import org.hid4java.HidServices;
 
 public class StreamDeck {
 
-    protected static final int VENDOR_ID = 4057;
-    protected static final int PRODUCT_ID = 109;
-    protected static final byte BRIGHTNESS_REPORT_ID = 0x03;
-    protected static final byte[] INTERRUPT_ID = {1, 0, 15, 0};
-    protected static final int NUM_BUTTONS = 15;
+    private static final int VENDOR_ID = 4057;
+    private static final int PRODUCT_ID = 109;
+    private static final byte BRIGHTNESS_REPORT_ID = 0x03;
+    private static final byte[] INTERRUPT_ID = {1, 0, 15, 0};
+    private static final int NUM_BUTTONS = 15;
     private final HidDevice hidDevice;
-    private boolean[] buttonStates;
+    private final boolean[] buttonStates = new boolean[NUM_BUTTONS];
 
-    private StreamDeck(HidDevice hidDevice) {
+    private StreamDeck(HidDevice hidDevice) { //todo set images on elgato buttons  
         this.hidDevice = hidDevice;
         hidDevice.open();
     }
@@ -32,27 +32,24 @@ public class StreamDeck {
      * @param timeoutMS 
      * @return new StreamDeck button states
      */
-    public boolean[] updateButtonStates(int timeoutMS) {
+    public void updateButtonStates(int timeoutMS) {
         byte[] data = new byte[INTERRUPT_ID.length + NUM_BUTTONS];
         int bytesRead = hidDevice.read(data, timeoutMS);
-        if (bytesRead != data.length) return null;
+        if (bytesRead != data.length) return;
         for (int i = 0; i < INTERRUPT_ID.length; i++) {
-            if (data[i] != INTERRUPT_ID[i]) return null;
+            if (data[i] != INTERRUPT_ID[i]) return;
         }
-        boolean[] result = new boolean[NUM_BUTTONS];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = byteToBool(data[i + INTERRUPT_ID.length]);
+        for (int i = 0; i < buttonStates.length; i++) {
+            buttonStates[i] = byteToBool(data[i + INTERRUPT_ID.length]);
         }
-        buttonStates = result;
-        return result;
     }
 
     /**
      * Updates the class's button states, Forever blocking call
      * @return new StreamDeck button states
      */
-    public boolean[] updateButtonStates() {
-        return updateButtonStates(-1);
+    public void updateButtonStates() {
+        updateButtonStates(-1);
     }
 
     public void setBrightness(int brightness) {
