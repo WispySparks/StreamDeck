@@ -3,7 +3,7 @@ plugins {
     id "java-library"
 }
 
-group = "wispysparks.streamdeck"
+group = "com.github.wispysparks"
 
 repositories {
     mavenCentral()
