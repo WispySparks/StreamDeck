@@ -3,7 +3,7 @@ plugins {
     id "java-library"
 }
 
-group = "wispysparks.streamdeck"
+group = "com.github.wispysparks"
 
 repositories {
     mavenCentral()
@@ -11,4 +11,12 @@ repositories {
 
 dependencies {
     implementation('org.hid4java:hid4java:0.7.0')
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+		    from components.java
+        }
+    }
 }
