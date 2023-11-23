@@ -1,6 +1,7 @@
 package streamdeck;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.hid4java.HidDevice;
@@ -9,7 +10,7 @@ import org.hid4java.HidServices;
 
 public class Main {
 
-    static final byte BRIGHTNESS_REPORT_ID = 0x03;
+    public static final byte BRIGHTNESS_REPORT_ID = 0x03;
 
     public static void main(String[] args) {
         List<HidDevice> streamDecks = new ArrayList<>();
@@ -22,12 +23,16 @@ public class Main {
         }
         HidDevice streamDeck = streamDecks.get(0);
         streamDeck.open();
-        int r = streamDeck.sendFeatureReport(getBrightnessCommand((byte) 100), BRIGHTNESS_REPORT_ID);
-        System.out.println(r);
-        streamDeck.close();
+        // streamDeck.sendFeatureReport(getBrightnessBuffer((byte) 70), BRIGHTNESS_REPORT_ID);
+        byte[] data = new byte[512];
+        while (true) {
+            int r = streamDeck.read(data);
+            System.out.println(Arrays.toString(data));
+        }
+        // streamDeck.close();
     }
 
-    public static byte[] getBrightnessCommand(byte brightness) {
+    public static byte[] getBrightnessBuffer(byte brightness) {
         byte[] buffer = new byte[]{
             0x08, brightness, 0x23, (byte) 0xB8, 0x01, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
