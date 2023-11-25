@@ -1,5 +1,7 @@
 package streamdeck;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,15 +14,27 @@ public class StreamDeck {
 
     private static final int VENDOR_ID = 4057;
     private static final int PRODUCT_ID = 109;
+    private static final byte ICON_REPORT_ID = 0x02;
     private static final byte BRIGHTNESS_REPORT_ID = 0x03;
     private static final byte[] INTERRUPT_ID = {1, 0, 15, 0};
     private static final int NUM_BUTTONS = 15;
+    private static byte[] blankIconData;
     private final HidDevice hidDevice;
     private final boolean[] buttonStates = new boolean[NUM_BUTTONS];
 
-    private StreamDeck(HidDevice hidDevice) { //todo set images on elgato buttons  
+    static {
+        try {
+            InputStream stream = StreamDeck.class.getResourceAsStream("/blank.jpg");
+            blankIconData = stream.readAllBytes();
+            stream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private StreamDeck(HidDevice hidDevice) { 
         this.hidDevice = hidDevice;
-        hidDevice.open();
+        hidDevice.open(); 
     }
 
     public boolean[] getButtonStates() {
@@ -45,7 +59,7 @@ public class StreamDeck {
     }
 
     /**
-     * Updates the class's button states, Forever blocking call
+     * Updates the class's button states, forever blocking call
      * @return new StreamDeck button states
      */
     public void updateButtonStates() {
@@ -59,11 +73,24 @@ public class StreamDeck {
         hidDevice.sendFeatureReport(getBrightnessBuffer((byte) brightness), BRIGHTNESS_REPORT_ID);
     }
 
+    public void clearIcon(int button) {
+        if (button < 0 || button > 14) {
+            throw new IllegalArgumentException("Button index out of bounds! Must be between 0-14.");
+        }
+        // 1016 bytes max?
+        //                                    0x00, 0xF8?
+        byte[] prefix = {0x07, (byte) button, 0x01, 0x01, 0x03, 0x00, 0x00};
+        byte[] packet = new byte[prefix.length + blankIconData.length];
+        System.arraycopy(prefix, 0, packet, 0, prefix.length);
+        System.arraycopy(blankIconData, 0, packet, prefix.length, blankIconData.length);
+        hidDevice.write(packet, packet.length, ICON_REPORT_ID);
+    }
+
     public void close() {
         hidDevice.close();
     }
 
-    public void printButtons() {
+    public void printButtonStates() {
         System.out.println(Arrays.toString(buttonStates));
     }
 
