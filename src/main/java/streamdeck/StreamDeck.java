@@ -1,5 +1,7 @@
 package streamdeck;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -12,12 +14,9 @@ import org.hid4java.HidServices;
 
 public class StreamDeck {
 
-    private static final int VENDOR_ID = 4057;
-    private static final int PRODUCT_ID = 109;
-    private static final byte ICON_REPORT_ID = 0x02;
-    private static final byte BRIGHTNESS_REPORT_ID = 0x03;
-    private static final byte[] INTERRUPT_ID = {1, 0, 15, 0};
-    private static final int NUM_BUTTONS = 15;
+    public static final int VENDOR_ID = 4057;
+    public static final int PRODUCT_ID = 109;
+    public static final int NUM_BUTTONS = 15;
     private static byte[] blankIconData;
     private final HidDevice hidDevice;
     private final boolean[] buttonStates = new boolean[NUM_BUTTONS];
@@ -47,14 +46,15 @@ public class StreamDeck {
      * @return new StreamDeck button states
      */
     public void updateButtonStates(int timeoutMS) {
-        byte[] data = new byte[INTERRUPT_ID.length + NUM_BUTTONS];
+        final byte[] prefix = {1, 0, 15, 0};
+        byte[] data = new byte[prefix.length + NUM_BUTTONS];
         int bytesRead = hidDevice.read(data, timeoutMS);
         if (bytesRead != data.length) return;
-        for (int i = 0; i < INTERRUPT_ID.length; i++) {
-            if (data[i] != INTERRUPT_ID[i]) return;
+        for (int i = 0; i < prefix.length; i++) {
+            if (data[i] != prefix[i]) return;
         }
         for (int i = 0; i < buttonStates.length; i++) {
-            buttonStates[i] = byteToBool(data[i + INTERRUPT_ID.length]);
+            buttonStates[i] = byteToBool(data[i + prefix.length]);
         }
     }
 
@@ -67,17 +67,39 @@ public class StreamDeck {
     }
 
     public void setBrightness(int brightness) {
+        final byte BRIGHTNESS_REPORT_ID = 0x03;
         if (brightness < 0 || brightness > 100) {
             throw new IllegalArgumentException("Brightness is out of bounds! Must be between 0-100.");
         }
         hidDevice.sendFeatureReport(getBrightnessBuffer((byte) brightness), BRIGHTNESS_REPORT_ID);
     }
 
+    public void setIcon(int button, File f) {
+        final byte ICON_REPORT_ID = 0x02;
+        byte[] data;
+        try {
+            InputStream stream = new FileInputStream(f);
+            // data = stream.readNBytes(1016);
+            data = stream.readAllBytes();
+            stream.close();
+        } catch (IOException e) {
+            e.printStackTrace(); return;
+        }
+        byte[] prefix = {0x07, (byte) button, 0x00, (byte) 0xF8, 0x03, 0x00, 0x00};
+        byte[] packet = new byte[prefix.length + data.length];
+        System.arraycopy(prefix, 0, packet, 0, prefix.length);
+        System.arraycopy(data, 0, packet, prefix.length, data.length);
+        int i = hidDevice.write(packet, packet.length, ICON_REPORT_ID);
+        System.out.println(hidDevice.getLastErrorMessage());
+        System.out.println(i);
+    }
+
     public void clearIcon(int button) {
+        final byte ICON_REPORT_ID = 0x02;
         if (button < 0 || button > 14) {
             throw new IllegalArgumentException("Button index out of bounds! Must be between 0-14.");
         }
-        // 1016 bytes max?
+        // 1024 bytes max?
         //                                    0x00, 0xF8?
         byte[] prefix = {0x07, (byte) button, 0x01, 0x01, 0x03, 0x00, 0x00};
         byte[] packet = new byte[prefix.length + blankIconData.length];

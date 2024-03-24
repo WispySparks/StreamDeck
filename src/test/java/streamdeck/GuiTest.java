@@ -18,7 +18,7 @@ public class GuiTest {
         window.setLocationRelativeTo(null);
         window.setLayout(null);
         window.getContentPane().setBackground(Color.BLACK);
-        for (int i = 0; i < 15; i++) { // Buttons
+        for (int i = 0; i < StreamDeck.NUM_BUTTONS; i++) { // Buttons
             JPanel rectangle = new JPanel();
             int width = 75;
             int height = 75;
